@@ -1,0 +1,29 @@
+import User from "../../../models/User";
+import connectDB from "../../../middleware/mongo";
+var CryptoJS = require("crypto-js");
+var jwt = require("jsonwebtoken");
+const handler = async (req, res) => {
+  if (req.method == "POST") {
+    let user = await User.findOne({ email: req.body.email });
+    console.log(user)
+    //console.log(user.email, user.password);
+    var bytes = CryptoJS.AES.decrypt(user.password, process.env.secret_key);
+    var password = bytes.toString(CryptoJS.enc.Utf8);
+    if (user) {
+      if (
+        req.body.email.toLowerCase() == user.email &&
+        req.body.password == password &&
+        req.body.UserType.toLowerCase() == user.UserType
+      ) {
+        var token = jwt.sign({UserID:user._id,UserEmail:user.email}, process.env.secret_key);
+        res.status(200).json({ success: true, token });
+      } else {
+        res.status(400).json({ error: "Invalid Credentials" });
+      }
+    } else {
+      res.status(400).json({ error: "No User Found with these credetials" });
+    }
+  }
+};
+
+export default connectDB(handler);
